@@ -1,0 +1,17 @@
+[package]
+name = "chess_engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+chess = "3.2.0"
+
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+panic = "abort"
+codegen-units = 1
+debug = false
+incremental = true
+strip = "symbols"
