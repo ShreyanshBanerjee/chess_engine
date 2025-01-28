@@ -1,5 +1,5 @@
-###I WILL IMPROVE THIS LATER
-###Chess Engine
+### I WILL IMPROVE THIS LATER
+### Chess Engine
 A fully optimized engine in the Rust Language.
 Implements the UCI Protocol, allowing it to be compatible with many chess GUIs (XBoard, CuteChess)
 
