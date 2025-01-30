@@ -13,14 +13,6 @@ use std::io;
 use std::str::FromStr;
 use std::time::Instant;
 
-const PIECES : [(Piece, i32); 5] = [
-    (Piece::Pawn, 100),
-    (Piece::Knight, 300),
-    (Piece::Bishop, 325),
-    (Piece::Rook, 500),
-    (Piece::Queen, 900)
-];
-
 const PAWN_PST: [i32; 64] = [
      0,  0,  0,  0,  0,  0,  0,  0,
     50, 50, 50, 50, 50, 50, 50, 50,
@@ -91,9 +83,9 @@ const NULL_MOVE_REDUCTION: i32 = 3;
 const LATE_MOVE_REDUCTION: i32 = 2;
 
 fn query_pst(bitboard: BitBoard, default_val: i32, pst: [i32; 64], white: bool) -> i32 {
-    let mut squares: Vec<_> = (0..64).into_iter().collect();
+    let squares: Vec<_> = (0..64).into_iter().collect();
     let mut val = 0;
-    let mut bb_usize = bitboard.to_size(0);
+    let bb_usize = bitboard.to_size(0);
     
     for index in squares {
         if (bb_usize & (1 << index)) != 0 { //if the bit is 1
@@ -159,11 +151,12 @@ impl EvalTracker {
     fn update(&self, board: &Board, c_move: &ChessMove) -> Self {
         let white = board.side_to_move() == Color::White;
         let piece = board.piece_on(c_move.get_source()).unwrap();
-        if let Some(piece) = board.piece_on(c_move.get_dest()) {
+        if let Some(dest_piece) = board.piece_on(c_move.get_dest()) {
             return EvalTracker {
                 eval : self.eval 
-                    + get_piece_value(piece) 
-                    + 2 * query_pst_single(piece, c_move.get_dest().to_int() as usize, white)
+                    + get_piece_value(dest_piece)
+                    + query_pst_single(dest_piece, c_move.get_dest().to_int() as usize, !white)
+                    + query_pst_single(piece, c_move.get_dest().to_int() as usize, white)
                     - query_pst_single(piece, c_move.get_source().to_int() as usize, white)
             };
         }
@@ -243,7 +236,7 @@ impl Engine {
             }
         }
 
-        //self.counter += 1;
+        self.counter += 1;
 
         let result = match board.status() {
             BoardStatus::Checkmate => -99999,
@@ -274,7 +267,7 @@ impl Engine {
                     for (i, next_move) in self.get_ordered_moves(&board, &mut moves).into_iter().enumerate() {
                         //after the first 7 moves any other moves will likely be non critical due
                         //to proper move ordering
-                        if (i<8 || depth < LATE_MOVE_REDUCTION) {
+                        if i<8 || depth < LATE_MOVE_REDUCTION {
                             c_score = -self.calculate(board.make_move_new(next_move), flipped.update(&board, &next_move), depth-1, -beta, -alpha, nmp);
                         } else {
                             c_score = -self.calculate(board.make_move_new(next_move), flipped.update(&board, &next_move), depth-LATE_MOVE_REDUCTION, -beta, -alpha, nmp);
@@ -427,6 +420,8 @@ fn main() {
                 let start = Instant::now();
                 println!("bestmove {}", oxide_data.find_best(engine_pos, eval, depth).0);
                 println!("Time: {:?}", start.elapsed());
+                println!("Nodes visited: {}", oxide_data.counter);
+                oxide_data.counter = 0;
             }
             UCIToken::Reset => oxide_data = Engine {
                 cache      : HashMap::new(),
