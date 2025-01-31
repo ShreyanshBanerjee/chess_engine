@@ -79,8 +79,9 @@ const KING_PST: [i32; 64] = [
      20, 30, 10,  0,  0, 10, 30, 20
 ];
 
-const NULL_MOVE_REDUCTION: i32 = 3;
-const LATE_MOVE_REDUCTION: i32 = 2;
+const NULL_MOVE_REDUCTION: i32 = 3; //how much to reduce search depth by when doing a null move search
+const LATE_MOVE_REDUCTION: i32 = 2; //how much to reduce search by on a late move
+const LATE_MOVE_THRESHOLD: usize = 4; //how many moves to search before applying lmp
 
 fn query_pst(bitboard: BitBoard, default_val: i32, pst: [i32; 64], white: bool) -> i32 {
     let squares: Vec<_> = (0..64).into_iter().collect();
@@ -267,7 +268,7 @@ impl Engine {
                     for (i, next_move) in self.get_ordered_moves(&board, &mut moves).into_iter().enumerate() {
                         //after the first 7 moves any other moves will likely be non critical due
                         //to proper move ordering
-                        if i<8 || depth < LATE_MOVE_REDUCTION {
+                        if i < LATE_MOVE_THRESHOLD || depth < LATE_MOVE_REDUCTION {
                             c_score = -self.calculate(board.make_move_new(next_move), flipped.update(&board, &next_move), depth-1, -beta, -alpha, nmp);
                         } else {
                             c_score = -self.calculate(board.make_move_new(next_move), flipped.update(&board, &next_move), depth-LATE_MOVE_REDUCTION, -beta, -alpha, nmp);
@@ -314,7 +315,8 @@ impl Engine {
                 max_depth-1,
                 -999,   
                 999, 
-                true);
+                true
+            );
             
             if c_score > alpha {
                 alpha = c_score;
@@ -415,7 +417,15 @@ fn main() {
                 }
                 eval = EvalTracker::init(&engine_pos);
             },
-            UCIToken::Go(depth) => println!("bestmove {}", oxide_data.find_best(engine_pos, eval, depth).0),
+            UCIToken::Go(depth) => {
+                let start = Instant::now();
+                let results = oxide_data.find_best(engine_pos, eval, depth);
+                println!("bestmove {}", results.0);
+                println!(
+                    "info depth {} score cp {} nodes {} time {}",
+                    depth, results.1, oxide_data.counter, start.elapsed().as_millis()
+                );
+            }
             UCIToken::TimedGo(depth) => {
                 let start = Instant::now();
                 println!("bestmove {}", oxide_data.find_best(engine_pos, eval, depth).0);
