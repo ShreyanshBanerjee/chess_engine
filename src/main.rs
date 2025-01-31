@@ -82,7 +82,7 @@ const KING_PST: [i32; 64] = [
 const NULL_MOVE_REDUCTION: i32 = 3; //how much to reduce search depth by when doing a null move search
 const LATE_MOVE_REDUCTION: i32 = 2; //how much to reduce search by on a late move
 const LATE_MOVE_THRESHOLD: usize = 4; //how many moves to search before applying lmp
-const DEFAULT_SEARCH_DEPTH: i32 = 8; //will always be achievable <5s
+const DEFAULT_SEARCH_DEPTH: i32 = 7; //will always be achievable <5s
 
 fn query_pst(bitboard: BitBoard, default_val: i32, pst: [i32; 64], white: bool) -> i32 {
     let squares: Vec<_> = (0..64).into_iter().collect();
