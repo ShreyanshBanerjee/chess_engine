@@ -82,6 +82,7 @@ const KING_PST: [i32; 64] = [
 const NULL_MOVE_REDUCTION: i32 = 3; //how much to reduce search depth by when doing a null move search
 const LATE_MOVE_REDUCTION: i32 = 2; //how much to reduce search by on a late move
 const LATE_MOVE_THRESHOLD: usize = 4; //how many moves to search before applying lmp
+const DEFAULT_SEARCH_DEPTH: i32 = 8; //will always be achievable <5s
 
 fn query_pst(bitboard: BitBoard, default_val: i32, pst: [i32; 64], white: bool) -> i32 {
     let squares: Vec<_> = (0..64).into_iter().collect();
@@ -336,7 +337,6 @@ enum UCIToken {
     UciNewGame,
     Position(Option<String>, Vec<String>),
     Go(i32),
-    TimedGo(i32),
     Reset,
     Stop,
     Unknown
@@ -371,15 +371,8 @@ fn get_uci() -> UCIToken {
         Some("go") => {
             match tokens.next() {
                 Some("depth") => UCIToken::Go(tokens.next().unwrap().parse::<i32>().unwrap()),
-                Some(_) => UCIToken::Go(6),
-                None => UCIToken::Go(6)
-            }
-        },
-        Some("timedgo") => {
-            match tokens.next() {
-                Some("depth") => UCIToken::TimedGo(tokens.next().unwrap().parse::<i32>().unwrap()),
-                Some(_) => UCIToken::TimedGo(7),
-                None => UCIToken::TimedGo(7)
+                Some(_) => UCIToken::Go(DEFAULT_SEARCH_DEPTH),
+                None => UCIToken::Go(DEFAULT_SEARCH_DEPTH)
             }
         },
         Some("reset") => UCIToken::Reset,
@@ -425,14 +418,7 @@ fn main() {
                     "info depth {} score cp {} nodes {} time {}",
                     depth, results.1, oxide_data.counter, start.elapsed().as_millis()
                 );
-            }
-            UCIToken::TimedGo(depth) => {
-                let start = Instant::now();
-                println!("bestmove {}", oxide_data.find_best(engine_pos, eval, depth).0);
-                println!("Time: {:?}", start.elapsed());
-                println!("Nodes visited: {}", oxide_data.counter);
-                oxide_data.counter = 0;
-            }
+            },
             UCIToken::Reset => oxide_data = Engine {
                 cache      : HashMap::new(),
                 history    : [[[0; 64]; 64]; 2],
